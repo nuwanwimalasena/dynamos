@@ -10,7 +10,9 @@
     "electron:dev": "electron-vite dev",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "package": "electron-vite build && electron-builder",
+    "publish": "electron-vite build && electron-builder --publish always"
   },
   "keywords": [
     "dynamodb",
@@ -27,6 +29,7 @@
     "@typescript-eslint/parser": "^7.13.1",
     "@vitejs/plugin-react": "^4.3.1",
     "electron": "^31.0.2",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^2.3.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
@@ -49,5 +52,34 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.24.0",
     "zustand": "^4.5.4"
+  },
+  "build": {
+    "appId": "com.dynamos.app",
+    "productName": "Dynamos",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "resources/icon.png"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "resources/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "resources/icon.png"
+    }
   }
 }

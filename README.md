@@ -57,11 +57,35 @@ npm run dev
 npm run build
 ```
 
+### Packaging the Application
+
+To create a standalone installer for your current OS:
+
+```bash
+npm run package
+```
+
+The installers will be available in the `dist/` directory.
+
+### Publishing Releases (Automated)
+
+This project is configured with GitHub Actions to automatically build and publish releases. To trigger a release:
+
+1. Update the version in `package.json`.
+2. Push a new tag:
+   ```bash
+   git tag v1.0.1
+   git push origin v1.0.1
+   ```
+
+The workflow in `.github/workflows/release.yml` will handle the rest.
+
 ---
 
 ## 🛠️ Built With
 
 - **[Electron](https://www.electronjs.org/)**: Desktop application framework.
+- **[electron-builder](https://www.electron.build/)**: Complete solution to package and dev Electron apps.
 - **[Vite](https://vitejs.dev/)**: Next-generation frontend tooling.
 - **[React](https://reactjs.org/)**: UI library.
 - **[Ant Design](https://ant.design/)**: Enterprise-class UI design language.
