@@ -25,6 +25,10 @@
     "name": "Nuwan Wimalasena",
     "email": "nuwan@example.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nuwanwimalasena/dynamore.git"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
@@ -60,6 +64,9 @@
   "build": {
     "appId": "com.dynamore.app",
     "productName": "Dynamore",
+    "publish": [
+      "github"
+    ],
     "directories": {
       "output": "dist"
     },
