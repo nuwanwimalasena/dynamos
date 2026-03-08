@@ -22,13 +22,21 @@ export default function LoginPage() {
     const [errorMsg, setErrorMsg] = useState('')
 
     useEffect(() => {
+        const fetchConfig = async () => {
+            const config = await window.api.auth.getLastSSOConfig()
+            if (config) {
+                form.setFieldsValue(config)
+            }
+        }
+        fetchConfig()
+
         const unsubscribe = window.api.auth.onLoginProgress((_event, msg) => {
             setProgressMsg(msg)
             if (msg.toLowerCase().includes('browser')) setStep('browser')
             else if (msg.toLowerCase().includes('waiting')) setStep('polling')
         })
         return unsubscribe
-    }, [])
+    }, [form])
 
     const handleLogin = async (values: LoginFormValues) => {
         setStep('polling')

@@ -9,6 +9,7 @@ const api = {
             ipcRenderer.invoke('auth:startSSOLogin', params),
         logout: () => ipcRenderer.invoke('auth:logout'),
         getSession: () => ipcRenderer.invoke('auth:getSession'),
+        getLastSSOConfig: () => ipcRenderer.invoke('auth:getLastSSOConfig'),
         onLoginProgress: (callback: (event: unknown, message: string) => void) => {
             ipcRenderer.on('auth:loginProgress', callback)
             return () => ipcRenderer.removeListener('auth:loginProgress', callback)

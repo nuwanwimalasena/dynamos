@@ -21,6 +21,10 @@
     "desktop"
   ],
   "license": "MIT",
+  "author": {
+    "name": "Nuwan Wimalasena",
+    "email": "nuwan@example.com"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",

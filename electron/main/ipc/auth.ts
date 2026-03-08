@@ -19,6 +19,9 @@ interface SessionData {
 }
 
 const store = new Store<{ session: SessionData | null }>({ name: 'dynamore-auth' })
+const configStore = new Store<{
+    lastSSOConfig: { startUrl: string; region: string; accountId: string; roleName: string } | null
+}>({ name: 'dynamore-config' })
 
 let currentSession: SessionData | null = store.get('session', null)
 
@@ -36,6 +39,10 @@ export function getCredentials() {
 }
 
 export function registerAuthHandlers(ipcMain: IpcMain): void {
+    ipcMain.handle('auth:getLastSSOConfig', () => {
+        return configStore.get('lastSSOConfig', null)
+    })
+
     ipcMain.handle('auth:startSSOLogin', async (event, { startUrl, region, accountId, roleName }) => {
         try {
             const oidcClient = new SSOOIDCClient({ region })
@@ -110,6 +117,7 @@ export function registerAuthHandlers(ipcMain: IpcMain): void {
             }
 
             store.set('session', currentSession)
+            configStore.set('lastSSOConfig', { startUrl, region, accountId, roleName })
             return { success: true, accountId, roleName, region }
         } catch (err: unknown) {
             const error = err as Error
