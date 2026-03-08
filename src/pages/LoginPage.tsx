@@ -59,7 +59,7 @@ export default function LoginPage() {
             {/* Title bar */}
             <div className="titlebar">
                 <div style={{ flex: 1 }} />
-                <Text style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>Dynamos</Text>
+                <Text style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>Dynamore</Text>
                 <div style={{ flex: 1 }} />
             </div>
 

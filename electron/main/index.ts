@@ -42,7 +42,7 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-    electronApp.setAppUserModelId('com.dynamos.app')
+    electronApp.setAppUserModelId('com.dynamore.app')
 
     app.on('browser-window-created', (_, window) => {
         optimizer.watchWindowShortcuts(window)

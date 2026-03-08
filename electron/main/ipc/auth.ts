@@ -18,7 +18,7 @@ interface SessionData {
     roleName: string
 }
 
-const store = new Store<{ session: SessionData | null }>({ name: 'dynamos-auth' })
+const store = new Store<{ session: SessionData | null }>({ name: 'dynamore-auth' })
 
 let currentSession: SessionData | null = store.get('session', null)
 
@@ -43,7 +43,7 @@ export function registerAuthHandlers(ipcMain: IpcMain): void {
             // Step 1: Register client
             event.sender.send('auth:loginProgress', 'Registering client…')
             const registerRes = await oidcClient.send(new RegisterClientCommand({
-                clientName: 'dynamos',
+                clientName: 'dynamore',
                 clientType: 'public'
             }))
 

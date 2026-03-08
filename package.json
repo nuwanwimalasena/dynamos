@@ -1,5 +1,5 @@
 {
-  "name": "dynamos",
+  "name": "dynamore",
   "version": "1.0.0",
   "description": "A DynamoDB desktop client",
   "main": "out/main/index.js",
@@ -54,8 +54,8 @@
     "zustand": "^4.5.4"
   },
   "build": {
-    "appId": "com.dynamos.app",
-    "productName": "Dynamos",
+    "appId": "com.dynamore.app",
+    "productName": "Dynamore",
     "directories": {
       "output": "dist"
     },

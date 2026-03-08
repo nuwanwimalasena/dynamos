@@ -38,7 +38,7 @@ export default function MainLayout() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 80 }}>
                     <CloudServerOutlined style={{ color: 'var(--color-accent-blue)', fontSize: 16 }} />
                     <Text style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: 13 }}>
-                        Dynamos
+                        Dynamore
                     </Text>
                 </div>
 
