@@ -6,6 +6,17 @@ export interface Session {
     region: string
 }
 
+export interface AWSAccount {
+    accountId: string
+    accountName: string
+    emailAddress?: string
+}
+
+export interface AWSRole {
+    roleName: string
+    accountId: string
+}
+
 export interface TableDescription {
     TableName?: string
     TableStatus?: string
@@ -33,15 +44,39 @@ declare global {
     interface Window {
         api: {
             auth: {
-                startSSOLogin: (params: {
+                initSSO: (params: {
                     startUrl: string
+                    region: string
+                }) => Promise<{ clientId: string; clientSecret: string; deviceCode: string; interval: number; expiresAt: number; startUrl: string; region: string }>
+                pollSSOToken: (params: {
+                    region: string
+                    clientId: string
+                    clientSecret: string
+                    deviceCode: string
+                    interval: number
+                    expiresAt: number
+                }) => Promise<{ accessToken: string }>
+                listSSOAccounts: (params: {
+                    accessToken: string
+                    region: string
+                }) => Promise<{ accounts: AWSAccount[] }>
+                listSSOAccountRoles: (params: {
+                    accessToken: string
+                    region: string
+                    accountId: string
+                }) => Promise<{ roles: AWSRole[] }>
+                completeSSOLogin: (params: {
+                    accessToken: string
                     region: string
                     accountId: string
                     roleName: string
+                    startUrl: string
                 }) => Promise<{ success: boolean; error?: string; accountId?: string; roleName?: string; region?: string }>
                 logout: () => Promise<{ success: boolean }>
                 getSession: () => Promise<Session | null>
-                onLoginProgress: (callback: (event: unknown, message: string) => void) => () => void
+                getLastSSOConfig: () => Promise<{ startUrl: string; region: string; accountId: string; roleName: string } | null>
+                clearSSOConfig: () => Promise<{ success: boolean }>
+                onSSOProgress: (callback: (step: string, message: string) => void) => () => void
             }
             tables: {
                 list: () => Promise<{ success: boolean; tableNames?: string[]; error?: string }>

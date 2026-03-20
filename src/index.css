@@ -176,7 +176,50 @@ html, body {
 }
 
 .fade-in {
-  animation: fadeIn 0.2s ease forwards;
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Glassmorphism */
+.glass-card {
+  background: rgba(22, 27, 34, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(48, 54, 61, 0.6);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Animated Background */
+.auth-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: radial-gradient(circle at 50% 50%, #161b22 0%, #0d1117 100%);
+  overflow: hidden;
+}
+
+.auth-bg::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(88, 166, 255, 0.05) 0%, transparent 50%),
+              radial-gradient(circle at 70% 70%, rgba(247, 129, 102, 0.03) 0%, transparent 50%);
+  animation: rotateBg 20s linear infinite;
+}
+
+@keyframes rotateBg {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 /* Status badge */

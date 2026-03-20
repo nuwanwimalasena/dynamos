@@ -1,6 +1,6 @@
-import { IpcMain, shell } from 'electron'
+import { IpcMain, shell, WebContents } from 'electron'
 import { SSOOIDCClient, RegisterClientCommand, StartDeviceAuthorizationCommand, CreateTokenCommand } from '@aws-sdk/client-sso-oidc'
-import { SSOClient, GetRoleCredentialsCommand } from '@aws-sdk/client-sso'
+import { SSOClient, GetRoleCredentialsCommand, ListAccountsCommand, ListAccountRolesCommand } from '@aws-sdk/client-sso'
 import Store from 'electron-store'
 
 interface SessionData {
@@ -38,91 +38,124 @@ export function getCredentials() {
     }
 }
 
+function cleanStartUrl(url: string): string {
+    // Remove trailing /#/, #/, /, etc.
+    return url.trim().replace(/(\/+$|\/\#\/?$)/, '')
+}
+
+function sendProgress(sender: WebContents, step: string, message: string) {
+    try {
+        sender.send('auth:ssoProgress', { step, message })
+    } catch (_) { /* window may have closed */ }
+}
+
 export function registerAuthHandlers(ipcMain: IpcMain): void {
     ipcMain.handle('auth:getLastSSOConfig', () => {
         return configStore.get('lastSSOConfig', null)
     })
 
-    ipcMain.handle('auth:startSSOLogin', async (event, { startUrl, region, accountId, roleName }) => {
-        try {
-            const oidcClient = new SSOOIDCClient({ region })
+    // Step 1: Initiate SSO - register client, start device auth, open browser
+    ipcMain.handle('auth:initSSO', async (event, { startUrl: rawUrl, region }) => {
+        const startUrl = cleanStartUrl(rawUrl)
+        console.log(`auth:initSSO startUrl=${startUrl} region=${region}`)
 
-            // Step 1: Register client
-            event.sender.send('auth:loginProgress', 'Registering client…')
-            const registerRes = await oidcClient.send(new RegisterClientCommand({
-                clientName: 'dynamore',
-                clientType: 'public'
-            }))
+        configStore.set('lastSSOConfig', { startUrl, region, accountId: '', roleName: '' })
 
-            // Step 2: Start device authorization
-            event.sender.send('auth:loginProgress', 'Starting device authorization…')
-            const authRes = await oidcClient.send(new StartDeviceAuthorizationCommand({
-                clientId: registerRes.clientId!,
-                clientSecret: registerRes.clientSecret!,
-                startUrl
-            }))
+        sendProgress(event.sender, 'registering', 'Registering with AWS SSO…')
+        const oidcClient = new SSOOIDCClient({ region })
 
-            // Step 3: Open browser for user to login
-            event.sender.send('auth:loginProgress', 'Opening browser for login…')
-            await shell.openExternal(authRes.verificationUriComplete!)
+        const registerRes = await oidcClient.send(new RegisterClientCommand({
+            clientName: 'dynamore',
+            clientType: 'public'
+        }))
 
-            // Step 4: Poll for token
-            event.sender.send('auth:loginProgress', 'Waiting for login completion…')
-            const interval = (authRes.interval ?? 5) * 1000
-            const expiresAt = Date.now() + (authRes.expiresIn ?? 600) * 1000
+        sendProgress(event.sender, 'authorizing', 'Opening browser for sign-in…')
+        const authRes = await oidcClient.send(new StartDeviceAuthorizationCommand({
+            clientId: registerRes.clientId!,
+            clientSecret: registerRes.clientSecret!,
+            startUrl
+        }))
 
-            let accessToken: string | undefined
-            while (Date.now() < expiresAt) {
-                await new Promise(r => setTimeout(r, interval))
-                try {
-                    const tokenRes = await oidcClient.send(new CreateTokenCommand({
-                        clientId: registerRes.clientId!,
-                        clientSecret: registerRes.clientSecret!,
-                        grantType: 'urn:ietf:params:oauth:grant-type:device_code',
-                        deviceCode: authRes.deviceCode!
-                    }))
-                    accessToken = tokenRes.accessToken!
-                    break
-                } catch (e: unknown) {
-                    const err = e as { name?: string }
-                    if (err.name !== 'AuthorizationPendingException') throw e
-                }
-            }
+        await shell.openExternal(authRes.verificationUriComplete!)
 
-            if (!accessToken) throw new Error('Login timed out')
-
-            // Step 5: Get role credentials
-            event.sender.send('auth:loginProgress', 'Fetching credentials…')
-            const ssoClient = new SSOClient({ region })
-            const credRes = await ssoClient.send(new GetRoleCredentialsCommand({
-                accessToken,
-                accountId,
-                roleName
-            }))
-
-            const c = credRes.roleCredentials!
-            currentSession = {
-                accessToken,
-                accessTokenExpiry: Date.now() + 8 * 3600_000,
-                credentials: {
-                    accessKeyId: c.accessKeyId!,
-                    secretAccessKey: c.secretAccessKey!,
-                    sessionToken: c.sessionToken!,
-                    expiration: c.expiration!
-                },
-                startUrl,
-                region,
-                accountId,
-                roleName
-            }
-
-            store.set('session', currentSession)
-            configStore.set('lastSSOConfig', { startUrl, region, accountId, roleName })
-            return { success: true, accountId, roleName, region }
-        } catch (err: unknown) {
-            const error = err as Error
-            return { success: false, error: error.message }
+        return {
+            clientId: registerRes.clientId!,
+            clientSecret: registerRes.clientSecret!,
+            deviceCode: authRes.deviceCode!,
+            interval: (authRes.interval ?? 5) * 1000,
+            expiresAt: Date.now() + (authRes.expiresIn ?? 600) * 1000,
+            startUrl,
+            region
         }
+    })
+
+    // Step 2: Poll for token (runs in background, sends progress events)
+    ipcMain.handle('auth:pollSSOToken', async (event, { region, clientId, clientSecret, deviceCode, interval, expiresAt }) => {
+        sendProgress(event.sender, 'polling', 'Waiting for browser sign-in to complete…')
+        const oidcClient = new SSOOIDCClient({ region })
+
+        while (Date.now() < expiresAt) {
+            await new Promise(r => setTimeout(r, interval))
+            try {
+                const tokenRes = await oidcClient.send(new CreateTokenCommand({
+                    clientId,
+                    clientSecret,
+                    grantType: 'urn:ietf:params:oauth:grant-type:device_code',
+                    deviceCode
+                }))
+                sendProgress(event.sender, 'authenticated', 'Signed in! Fetching your accounts…')
+                return { accessToken: tokenRes.accessToken! }
+            } catch (e: unknown) {
+                const err = e as { name?: string }
+                if (err.name !== 'AuthorizationPendingException') throw e
+                // Still pending - continue polling
+            }
+        }
+        throw new Error('Login timed out. Please try again.')
+    })
+
+    // Step 3: List accounts
+    ipcMain.handle('auth:listSSOAccounts', async (_event, { accessToken, region }) => {
+        const ssoClient = new SSOClient({ region })
+        const res = await ssoClient.send(new ListAccountsCommand({ accessToken }))
+        return { accounts: res.accountList || [] }
+    })
+
+    // Step 4: List roles for an account
+    ipcMain.handle('auth:listSSOAccountRoles', async (_event, { accessToken, region, accountId }) => {
+        const ssoClient = new SSOClient({ region })
+        const res = await ssoClient.send(new ListAccountRolesCommand({ accessToken, accountId }))
+        return { roles: res.roleList || [] }
+    })
+
+    // Step 5: Complete login with selected account + role
+    ipcMain.handle('auth:completeSSOLogin', async (_event, { accessToken, region, accountId, roleName, startUrl }) => {
+        const ssoClient = new SSOClient({ region })
+        const credRes = await ssoClient.send(new GetRoleCredentialsCommand({
+            accessToken,
+            accountId,
+            roleName
+        }))
+
+        const c = credRes.roleCredentials!
+        currentSession = {
+            accessToken,
+            accessTokenExpiry: Date.now() + 8 * 3600_000,
+            credentials: {
+                accessKeyId: c.accessKeyId!,
+                secretAccessKey: c.secretAccessKey!,
+                sessionToken: c.sessionToken!,
+                expiration: c.expiration!
+            },
+            startUrl,
+            region,
+            accountId,
+            roleName
+        }
+
+        store.set('session', currentSession)
+        configStore.set('lastSSOConfig', { startUrl, region, accountId, roleName })
+        return { success: true, accountId, roleName, region }
     })
 
     ipcMain.handle('auth:logout', () => {
@@ -133,7 +166,6 @@ export function registerAuthHandlers(ipcMain: IpcMain): void {
 
     ipcMain.handle('auth:getSession', () => {
         if (!currentSession) return null
-        // Check if credentials or token are expired
         if (Date.now() > currentSession.credentials.expiration - 60_000) {
             currentSession = null
             store.delete('session')
@@ -144,5 +176,10 @@ export function registerAuthHandlers(ipcMain: IpcMain): void {
             roleName: currentSession.roleName,
             region: currentSession.region
         }
+    })
+
+    ipcMain.handle('auth:clearSSOConfig', () => {
+        configStore.delete('lastSSOConfig')
+        return { success: true }
     })
 }

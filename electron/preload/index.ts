@@ -5,14 +5,24 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
     // Auth
     auth: {
-        startSSOLogin: (params: { startUrl: string; region: string; accountId: string; roleName: string }) =>
-            ipcRenderer.invoke('auth:startSSOLogin', params),
+        initSSO: (params: { startUrl: string; region: string }) =>
+            ipcRenderer.invoke('auth:initSSO', params),
+        pollSSOToken: (params: { region: string; clientId: string; clientSecret: string; deviceCode: string; interval: number; expiresAt: number }) =>
+            ipcRenderer.invoke('auth:pollSSOToken', params),
+        listSSOAccounts: (params: { accessToken: string; region: string }) =>
+            ipcRenderer.invoke('auth:listSSOAccounts', params),
+        listSSOAccountRoles: (params: { accessToken: string; region: string; accountId: string }) =>
+            ipcRenderer.invoke('auth:listSSOAccountRoles', params),
+        completeSSOLogin: (params: { accessToken: string; region: string; accountId: string; roleName: string; startUrl: string }) =>
+            ipcRenderer.invoke('auth:completeSSOLogin', params),
         logout: () => ipcRenderer.invoke('auth:logout'),
         getSession: () => ipcRenderer.invoke('auth:getSession'),
         getLastSSOConfig: () => ipcRenderer.invoke('auth:getLastSSOConfig'),
-        onLoginProgress: (callback: (event: unknown, message: string) => void) => {
-            ipcRenderer.on('auth:loginProgress', callback)
-            return () => ipcRenderer.removeListener('auth:loginProgress', callback)
+        clearSSOConfig: () => ipcRenderer.invoke('auth:clearSSOConfig'),
+        onSSOProgress: (callback: (step: string, message: string) => void) => {
+            const listener = (_event: unknown, data: { step: string; message: string }) => callback(data.step, data.message)
+            ipcRenderer.on('auth:ssoProgress', listener)
+            return () => ipcRenderer.removeListener('auth:ssoProgress', listener)
         }
     },
 

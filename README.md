@@ -2,7 +2,7 @@
 
 ### A sleek, high-performance DynamoDB desktop client for power users.
 
-![Dynamore Mockup](file:///home/nuwan/.gemini/antigravity/brain/613b1244-afed-46c3-8f96-52d03546c2cd/dynamos_mockup_1772471766516.png)
+![Dynamore Mockup](resources/mockup.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Powered by React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
