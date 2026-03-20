@@ -11,26 +11,39 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: win
 
     steps:
-      - name: Check out git repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
-      - name: Build and Release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          github_token: ${{ secrets.github_token }}
-          release: true
-          # For Windows on windows-latest, it will build .exe
-          # For Linux on ubuntu-latest, it will build .deb and .AppImage
+      - name: Build and publish (Linux)
+        if: matrix.platform == 'linux'
+        run: pnpm run publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish (Windows)
+        if: matrix.platform == 'win'
+        run: pnpm run publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
