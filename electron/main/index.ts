@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerAuthHandlers } from './ipc/auth'
@@ -7,6 +7,9 @@ import { registerItemHandlers } from './ipc/items'
 import { registerQueryHandlers } from './ipc/query'
 
 function createWindow(): BrowserWindow {
+    const iconPath = join(__dirname, '../../resources/icon.png')
+    const icon = nativeImage.createFromPath(iconPath)
+
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
@@ -15,6 +18,7 @@ function createWindow(): BrowserWindow {
         show: false,
         titleBarStyle: 'hiddenInset',
         autoHideMenuBar: true,
+        icon,
         webPreferences: {
             preload: join(__dirname, '../preload/index.js'),
             sandbox: false,
